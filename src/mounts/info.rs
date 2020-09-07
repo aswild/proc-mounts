@@ -1,4 +1,3 @@
-use partition_identity::PartitionID;
 use std::{
     char,
     ffi::OsString,
@@ -63,23 +62,9 @@ impl FromStr for MountInfo {
             value.parse::<i32>().map_err(|_| map_err("pass value is not a number"))
         })?;
 
-        let path = Self::parse_value(source)?;
-        let path = path.to_str().ok_or_else(|| map_err("non-utf8 paths are unsupported"))?;
-
-        let source = if path.starts_with("/dev/disk/by-") {
-            Self::fetch_from_disk_by_path(path)?
-        } else {
-            PathBuf::from(path)
-        };
-
-        let path = Self::parse_value(dest)?;
-        let path = path.to_str().ok_or_else(|| map_err("non-utf8 paths are unsupported"))?;
-
-        let dest = PathBuf::from(path);
-
         Ok(MountInfo {
-            source,
-            dest,
+            source: PathBuf::from(Self::parse_value(source)?),
+            dest:  PathBuf::from(Self::parse_value(dest)?),
             fstype: fstype.to_owned(),
             options: options.split(',').map(String::from).collect(),
             dump,
@@ -92,15 +77,6 @@ impl MountInfo {
     /// Attempt to parse a `/proc/mounts`-like line.
     #[deprecated]
     pub fn parse_line(line: &str) -> io::Result<MountInfo> { line.parse::<Self>() }
-
-    fn fetch_from_disk_by_path(path: &str) -> io::Result<PathBuf> {
-        PartitionID::from_disk_by_path(path)
-            .map_err(|why| Error::new(ErrorKind::InvalidData, format!("{}: {}", path, why)))?
-            .get_device_path()
-            .ok_or_else(|| {
-                Error::new(ErrorKind::NotFound, format!("device path for {} was not found", path))
-            })
-    }
 
     fn parse_value(value: &str) -> io::Result<OsString> {
         let mut ret = Vec::new();

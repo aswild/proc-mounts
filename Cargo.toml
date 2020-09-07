@@ -10,4 +10,3 @@ categories = ["os::unix-apis"]
 keywords = ["linux", "proc", "mounts", "swaps"]
 
 [dependencies]
-lazy_static = "1.4.0"
